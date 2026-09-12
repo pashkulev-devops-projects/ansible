@@ -1,0 +1,61 @@
+---
+- name: Require at least one WireGuard peer
+  ansible.builtin.assert:
+    that:
+      - wireguard_peers | length > 0
+    fail_msg: wireguard_peers must contain at least one peer.
+
+- name: Install WireGuard
+  ansible.builtin.apt:
+    name: wireguard
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create WireGuard configuration directory
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Generate WireGuard server private key
+  ansible.builtin.shell:
+    cmd: "umask 077 && wg genkey > {{ wireguard_private_key_path | quote }}"
+    creates: "{{ wireguard_private_key_path }}"
+  no_log: true
+
+- name: Read WireGuard server private key
+  ansible.builtin.slurp:
+    src: "{{ wireguard_private_key_path }}"
+  register: _wireguard_private_key
+  no_log: true
+
+- name: Derive WireGuard server public key
+  ansible.builtin.command:
+    cmd: wg pubkey
+    stdin: "{{ _wireguard_private_key.content | b64decode }}"
+  register: _wireguard_public_key
+  changed_when: false
+  no_log: true
+
+- name: Expose WireGuard server public key
+  ansible.builtin.set_fact:
+    wireguard_server_public_key: "{{ _wireguard_public_key.stdout }}"
+
+- name: Configure WireGuard interface
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: "/etc/wireguard/{{ wireguard_interface }}.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart WireGuard
+  no_log: true
+
+- name: Enable and start WireGuard
+  ansible.builtin.systemd_service:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: started
+    enabled: true

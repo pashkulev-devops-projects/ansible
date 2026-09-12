@@ -1,0 +1,14 @@
+---
+namespace: pashkulev
+name: infrastructure
+version: 1.0.0
+readme: README.md
+authors:
+  - Ivan Pashkulev
+description: Reusable Ansible automation for infrastructure services.
+repository: https://github.com/pashkulev-devops-projects/ansible
+tags:
+  - infrastructure
+  - networking
+  - security
+dependencies: {}

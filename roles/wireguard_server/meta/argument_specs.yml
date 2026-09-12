@@ -1,0 +1,36 @@
+---
+argument_specs:
+  main:
+    short_description: Configure a WireGuard server and its peers.
+    options:
+      wireguard_interface:
+        type: str
+        default: wg0
+        description: WireGuard interface name.
+      wireguard_server_address:
+        type: str
+        default: 10.100.0.1/24
+        description: Private CIDR assigned to the WireGuard server interface.
+      wireguard_listen_port:
+        type: int
+        default: 51820
+        description: UDP port on which WireGuard accepts connections.
+      wireguard_private_key_path:
+        type: str
+        default: /etc/wireguard/wg0.key
+        description: Path used to persist the server private key.
+      wireguard_peers:
+        type: list
+        elements: dict
+        default: []
+        description: Peers authorized to connect to the server.
+        options:
+          public_key:
+            type: str
+            required: true
+            description: WireGuard public key of the peer.
+          allowed_ips:
+            type: list
+            elements: str
+            required: true
+            description: Private addresses routed to the peer.
