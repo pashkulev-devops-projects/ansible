@@ -6,11 +6,9 @@
     fail_msg: wireguard_peers must contain at least one peer.
 
 - name: Install WireGuard
-  ansible.builtin.apt:
-    name: wireguard
+  ansible.builtin.package:
+    name: wireguard-tools
     state: present
-    update_cache: true
-    cache_valid_time: 3600
 
 - name: Create WireGuard configuration directory
   ansible.builtin.file:

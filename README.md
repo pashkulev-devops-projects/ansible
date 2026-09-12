@@ -19,9 +19,10 @@ collections:
 
 ### `pashkulev.infrastructure.wireguard_server`
 
-Installs and configures a WireGuard server on Ubuntu. The role generates the
-server private key on the managed host and never copies it to the controller.
-It exposes the derived public key through the
+Installs and configures a WireGuard server on supported systemd-based Debian
+and Red Hat distributions. The role generates the server private key on the
+managed host and never copies it to the controller. It exposes the derived
+public key through the
 `wireguard_server_public_key` Ansible fact.
 
 ```yaml
@@ -37,6 +38,5 @@ It exposes the derived public key through the
             - 10.100.0.2/32
 ```
 
-The initial implementation supports Ubuntu hosts. Additional operating
-systems should be added only after their package and service behavior is
-tested.
+The initial implementation supports Ubuntu 24.04, RHEL 9, and Amazon Linux
+2023 when `wireguard-tools` is available in the configured repositories.
