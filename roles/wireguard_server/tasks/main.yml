@@ -9,6 +9,7 @@
   ansible.builtin.package:
     name: wireguard-tools
     state: present
+    update_cache: true
 
 - name: Create WireGuard configuration directory
   ansible.builtin.file:
