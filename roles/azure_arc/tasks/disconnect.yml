@@ -1,0 +1,32 @@
+---
+- name: Check whether the Azure Connected Machine agent is installed
+  ansible.builtin.command:
+    argv:
+      - azcmagent
+      - version
+  register: _azure_arc_agent
+  changed_when: false
+  failed_when: false
+
+- name: Disconnect the installed Azure Connected Machine agent
+  when: _azure_arc_agent.rc == 0
+  block:
+    - name: Read the current Azure Arc connection state
+      ansible.builtin.command:
+        argv:
+          - azcmagent
+          - show
+          - status
+          - --json
+      register: _azure_arc_connection
+      changed_when: false
+
+    - name: Disconnect the server from Azure Arc
+      when: (_azure_arc_connection.stdout | from_json).status == "Connected"
+      ansible.builtin.command:
+        argv:
+          - azcmagent
+          - disconnect
+          - --access-token
+          - "{{ azure_arc_access_token }}"
+      no_log: true

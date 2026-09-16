@@ -1,0 +1,61 @@
+---
+- name: Check whether the Azure Connected Machine agent is installed
+  ansible.builtin.command:
+    argv:
+      - azcmagent
+      - version
+  register: _azure_arc_agent
+  changed_when: false
+  failed_when: false
+
+- name: Install the Azure Connected Machine agent
+  when: _azure_arc_agent.rc != 0
+  vars:
+    _azure_arc_installer_path: /tmp/install-azure-connected-machine-agent.sh
+  block:
+    - name: Download the Microsoft agent installer
+      ansible.builtin.get_url:
+        url: https://aka.ms/azcmagent
+        dest: "{{ _azure_arc_installer_path }}"
+        mode: "0700"
+
+    - name: Run the Microsoft agent installer
+      ansible.builtin.command:
+        argv:
+          - /bin/bash
+          - "{{ _azure_arc_installer_path }}"
+
+    - name: Remove the Microsoft agent installer
+      ansible.builtin.file:
+        path: "{{ _azure_arc_installer_path }}"
+        state: absent
+
+- name: Read the current Azure Arc connection state
+  ansible.builtin.command:
+    argv:
+      - azcmagent
+      - show
+      - status
+      - --json
+  register: _azure_arc_connection
+  changed_when: false
+
+- name: Connect the server to Azure Arc
+  when: (_azure_arc_connection.stdout | from_json).status != "Connected"
+  ansible.builtin.command:
+    argv:
+      - azcmagent
+      - connect
+      - --access-token
+      - "{{ azure_arc_access_token }}"
+      - --tenant-id
+      - "{{ azure_arc_tenant_id }}"
+      - --subscription-id
+      - "{{ azure_arc_subscription_id }}"
+      - --resource-group
+      - "{{ azure_arc_resource_group }}"
+      - --resource-name
+      - "{{ azure_arc_machine_name }}"
+      - --location
+      - "{{ azure_arc_location }}"
+  no_log: true
