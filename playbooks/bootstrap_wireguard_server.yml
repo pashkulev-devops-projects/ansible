@@ -1,0 +1,55 @@
+---
+- name: Validate WireGuard bootstrap inputs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    wireguard_bootstrap_target: "{{ wireguard_bootstrap_target | default('wireguard_servers') }}"
+
+  tasks:
+    - name: Require exactly one WireGuard target
+      ansible.builtin.assert:
+        that:
+          - groups.get(wireguard_bootstrap_target, []) | length == 1
+        fail_msg: WireGuard bootstrap requires exactly one target.
+
+    - name: Require WireGuard runner public key
+      ansible.builtin.assert:
+        that:
+          - wireguard_bootstrap_runner_public_key | default('') | trim | length > 0
+        fail_msg: wireguard_bootstrap_runner_public_key is required.
+
+- name: Bootstrap WireGuard server
+  hosts: "{{ wireguard_bootstrap_target | default('wireguard_servers') }}"
+  remote_user: root
+  gather_facts: false
+
+  tasks:
+    - name: Wait for SSH readiness
+      ansible.builtin.wait_for_connection:
+        timeout: "{{ wireguard_bootstrap_ssh_timeout | default(300) }}"
+
+    - name: Wait for cloud-init
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+      when: wireguard_bootstrap_wait_for_cloud_init | default(true) | bool
+
+    - name: Configure WireGuard server
+      ansible.builtin.include_role:
+        name: pashkulev.infrastructure.wireguard_server
+      vars:
+        wireguard_server_address: "{{ wireguard_bootstrap_server_address | default('10.100.0.1/24') }}"
+        wireguard_listen_port: "{{ wireguard_bootstrap_listen_port | default(51820) }}"
+        wireguard_peers:
+          - public_key: "{{ wireguard_bootstrap_runner_public_key }}"
+            allowed_ips: "{{ wireguard_bootstrap_peer_allowed_ips | default(['10.100.0.2/32']) }}"
+
+    - name: Write WireGuard server public key
+      ansible.builtin.copy:
+        content: "{{ wireguard_server_public_key }}\n"
+        dest: "{{ wireguard_bootstrap_public_key_output_path }}"
+        mode: "0600"
+      delegate_to: localhost
+      changed_when: false
+      when: wireguard_bootstrap_public_key_output_path | default('') | length > 0
