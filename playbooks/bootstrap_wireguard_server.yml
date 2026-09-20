@@ -4,14 +4,14 @@
   connection: local
   gather_facts: false
 
-  vars:
-    wireguard_bootstrap_target: "{{ wireguard_bootstrap_target | default('wireguard_servers') }}"
-
   tasks:
     - name: Require exactly one WireGuard target
       ansible.builtin.assert:
         that:
-          - groups.get(wireguard_bootstrap_target, []) | length == 1
+          - groups.get(
+              wireguard_bootstrap_target | default('wireguard_servers'),
+              []
+            ) | length == 1
         fail_msg: WireGuard bootstrap requires exactly one target.
 
     - name: Require WireGuard runner public key
