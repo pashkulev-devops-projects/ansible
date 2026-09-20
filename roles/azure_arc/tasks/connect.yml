@@ -35,10 +35,22 @@
     argv:
       - azcmagent
       - show
-      - status
       - --json
   register: _azure_arc_connection
   changed_when: false
+
+- name: Reject an unexpected Azure Arc connection
+  vars:
+    _azure_arc_connection_details: "{{ _azure_arc_connection.stdout | from_json }}"
+    _azure_arc_expected_resource_id: >-
+      /subscriptions/{{ azure_arc_subscription_id }}/resourceGroups/{{ azure_arc_resource_group }}/providers/Microsoft.HybridCompute/machines/{{ azure_arc_machine_name }}
+  ansible.builtin.assert:
+    that:
+      - _azure_arc_connection_details.resourceId == _azure_arc_expected_resource_id
+    fail_msg: >-
+      Azure Arc agent is connected to {{ _azure_arc_connection_details.resourceId }},
+      but this deployment expects {{ _azure_arc_expected_resource_id }}.
+  when: (_azure_arc_connection.stdout | from_json).status == "Connected"
 
 - name: Connect the server to Azure Arc
   when: (_azure_arc_connection.stdout | from_json).status != "Connected"
