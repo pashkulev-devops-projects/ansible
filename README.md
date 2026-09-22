@@ -53,22 +53,20 @@ release directory only after both files are written.
   azure_runtime_synchronizer_config:
     endpoint: https://example.azconfig.io
     label: prod
+    key_prefix: example:
     sentinel_key: example:configuration:sentinel
     refresh_interval_seconds: 300
     output_directory: /var/lib/example/runtime
-    settings:
-      OPENAI_MODEL:
-        key: example:api:openai:model
-        secret: false
-      OPENAI_API_KEY:
-        key: example:api:openai:api_key
-        secret: true
 ```
 
-The service writes:
+The service loads every setting matching `key_prefix` and `label`. It removes
+the prefix from output keys. Ordinary values are written to
+`current/configuration.json`; Key Vault references are resolved and written to
+`current/secrets.json` with mode `0600`.
 
-- `current/configuration.json` with non-secret values.
-- `current/secrets.json` with Key Vault-derived values, mode `0600`.
+For example, `example:api:openai:model` becomes `api:openai:model`. A new
+runtime value needs no role change: add it under the configured prefix. Secrets
+must be stored in Key Vault and referenced from App Configuration.
 
 Consumers must resolve `current` once, then read both files from that resolved
 directory. This gives each reload a consistent configuration generation.

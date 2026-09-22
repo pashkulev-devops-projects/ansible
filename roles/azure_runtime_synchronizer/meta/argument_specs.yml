@@ -6,7 +6,7 @@ argument_specs:
       azure_runtime_synchronizer_config:
         type: dict
         required: true
-        description: Azure source, refresh behavior, output location, and value mappings.
+        description: Azure source, refresh behavior, and output location.
         options:
           endpoint:
             type: str
@@ -16,6 +16,10 @@ argument_specs:
             type: str
             required: true
             description: App Configuration label used to select values.
+          key_prefix:
+            type: str
+            required: true
+            description: Prefix used to select App Configuration values and remove it from output keys.
           sentinel_key:
             type: str
             required: true
@@ -28,7 +32,3 @@ argument_specs:
             type: str
             required: true
             description: Directory containing versioned releases and the current symlink.
-          settings:
-            type: dict
-            required: true
-            description: Mapping of JSON output keys to App Configuration keys and secret flags.

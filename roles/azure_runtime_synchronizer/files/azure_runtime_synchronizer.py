@@ -8,11 +8,14 @@ import time
 import uuid
 from pathlib import Path
 
+from azure.appconfiguration import SecretReferenceConfigurationSetting
 from azure.appconfiguration.provider import SettingSelector, WatchKey, load
 from azure.identity import ManagedIdentityCredential
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+CONFIGURATION_KEY_PREFIX = "configuration:"
+SECRET_KEY_PREFIX = "secret:"
 
 
 def write_json(path, value, mode):
@@ -33,19 +36,35 @@ def write_json(path, value, mode):
     os.replace(temporary_file.name, destination)
 
 
-def build_outputs(provider, settings):
+def classify_setting(setting):
+    prefix = (
+        SECRET_KEY_PREFIX
+        if isinstance(setting, SecretReferenceConfigurationSetting)
+        else CONFIGURATION_KEY_PREFIX
+    )
+    setting.key = f"{prefix}{setting.key}"
+
+
+def build_outputs(provider, config):
     configuration = {}
     secrets = {}
 
-    for output_key, source in settings.items():
-        target = secrets if source["secret"] else configuration
-        target[output_key] = provider[source["key"]]
+    for classified_key, value in provider.items():
+        if classified_key.startswith(SECRET_KEY_PREFIX):
+            target = secrets
+            source_key = classified_key.removeprefix(SECRET_KEY_PREFIX)
+        else:
+            target = configuration
+            source_key = classified_key.removeprefix(CONFIGURATION_KEY_PREFIX)
+
+        if source_key != config["sentinel_key"]:
+            target[source_key.removeprefix(config["key_prefix"])] = value
 
     return configuration, secrets
 
 
 def publish(provider, config, previous_output):
-    configuration, secrets = build_outputs(provider, config["settings"])
+    configuration, secrets = build_outputs(provider, config)
     current_output = (configuration, secrets)
 
     if current_output == previous_output:
@@ -70,23 +89,18 @@ def main():
         config = json.load(config_file)
 
     credential = ManagedIdentityCredential()
-    settings = list(config["settings"].values())
-    selectors = [
-        SettingSelector(key_filter=source["key"], label_filter=config["label"])
-        for source in settings
-    ]
-    selectors.append(
-        SettingSelector(
-            key_filter=config["sentinel_key"],
-            label_filter=config["label"],
-        )
-    )
 
     provider = load(
         endpoint=config["endpoint"],
         credential=credential,
         keyvault_credential=credential,
-        selects=selectors,
+        selects=[
+            SettingSelector(
+                key_filter=f"{config['key_prefix']}*",
+                label_filter=config["label"],
+            )
+        ],
+        configuration_mapper=classify_setting,
         refresh_on=[WatchKey(config["sentinel_key"], config["label"])],
         refresh_interval=config["refresh_interval_seconds"],
         secret_refresh_interval=config["refresh_interval_seconds"],
