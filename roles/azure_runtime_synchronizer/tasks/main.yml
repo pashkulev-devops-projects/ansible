@@ -16,9 +16,18 @@
     - /etc/azure-runtime-synchronizer
     - "{{ azure_runtime_synchronizer_config.output_directory }}"
 
+- name: Copy synchronizer Python requirements
+  ansible.builtin.copy:
+    src: requirements.txt
+    dest: /opt/azure-runtime-synchronizer/requirements.txt
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Azure runtime synchronizer
+
 - name: Install synchronizer Python dependencies
   ansible.builtin.pip:
-    requirements: "{{ role_path }}/files/requirements.txt"
+    requirements: /opt/azure-runtime-synchronizer/requirements.txt
     virtualenv: /opt/azure-runtime-synchronizer/venv
     virtualenv_command: python3 -m venv
   notify: Restart Azure runtime synchronizer
