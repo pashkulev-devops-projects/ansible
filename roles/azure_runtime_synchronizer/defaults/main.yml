@@ -1,0 +1,6 @@
+---
+azure_runtime_synchronizer_python_packages:
+  Debian:
+    - python3-venv
+  RedHat:
+    - python3

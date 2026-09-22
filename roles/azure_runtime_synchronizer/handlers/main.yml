@@ -1,0 +1,6 @@
+---
+- name: Restart Azure runtime synchronizer
+  ansible.builtin.systemd_service:
+    name: azure-runtime-synchronizer
+    state: restarted
+    daemon_reload: true

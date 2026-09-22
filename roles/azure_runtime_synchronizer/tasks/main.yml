@@ -1,0 +1,58 @@
+---
+- name: Install Python virtual environment support
+  ansible.builtin.package:
+    name: "{{ azure_runtime_synchronizer_python_packages[ansible_facts.os_family] }}"
+    state: present
+
+- name: Create synchronizer directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - /opt/azure-runtime-synchronizer
+    - /etc/azure-runtime-synchronizer
+    - "{{ azure_runtime_synchronizer_config.output_directory }}"
+
+- name: Install synchronizer Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ role_path }}/files/requirements.txt"
+    virtualenv: /opt/azure-runtime-synchronizer/venv
+    virtualenv_command: python3 -m venv
+  notify: Restart Azure runtime synchronizer
+
+- name: Install synchronizer program
+  ansible.builtin.copy:
+    src: azure_runtime_synchronizer.py
+    dest: /opt/azure-runtime-synchronizer/azure_runtime_synchronizer.py
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart Azure runtime synchronizer
+
+- name: Write synchronizer configuration
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: /etc/azure-runtime-synchronizer/config.json
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart Azure runtime synchronizer
+
+- name: Install synchronizer service
+  ansible.builtin.copy:
+    src: azure-runtime-synchronizer.service
+    dest: /etc/systemd/system/azure-runtime-synchronizer.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Azure runtime synchronizer
+
+- name: Enable and start synchronizer service
+  ansible.builtin.systemd_service:
+    name: azure-runtime-synchronizer
+    state: started
+    enabled: true
+    daemon_reload: true

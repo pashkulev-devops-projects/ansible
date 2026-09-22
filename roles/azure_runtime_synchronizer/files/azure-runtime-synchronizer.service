@@ -1,0 +1,13 @@
+[Unit]
+Description=Azure runtime configuration synchronizer
+Wants=network-online.target
+After=network-online.target azcmagent.service
+
+[Service]
+Type=simple
+ExecStart=/opt/azure-runtime-synchronizer/venv/bin/python /opt/azure-runtime-synchronizer/azure_runtime_synchronizer.py /etc/azure-runtime-synchronizer/config.json
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

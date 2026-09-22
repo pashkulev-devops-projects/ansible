@@ -40,3 +40,35 @@ public key through the
 
 The initial implementation supports Ubuntu 24.04, RHEL 9, and Amazon Linux
 2023 when `wireguard-tools` is available in the configured repositories.
+
+### `pashkulev.infrastructure.azure_runtime_synchronizer`
+
+Runs a systemd service that uses the Azure Arc managed identity to load App
+Configuration values and resolve Key Vault references. It refreshes on the
+configured sentinel every five minutes and atomically switches the `current`
+release directory only after both files are written.
+
+```yaml
+- role: pashkulev.infrastructure.azure_runtime_synchronizer
+  azure_runtime_synchronizer_config:
+    endpoint: https://example.azconfig.io
+    label: prod
+    sentinel_key: example:configuration:sentinel
+    refresh_interval_seconds: 300
+    output_directory: /var/lib/example/runtime
+    settings:
+      OPENAI_MODEL:
+        key: example:api:openai:model
+        secret: false
+      OPENAI_API_KEY:
+        key: example:api:openai:api_key
+        secret: true
+```
+
+The service writes:
+
+- `current/configuration.json` with non-secret values.
+- `current/secrets.json` with Key Vault-derived values, mode `0600`.
+
+Consumers must resolve `current` once, then read both files from that resolved
+directory. This gives each reload a consistent configuration generation.

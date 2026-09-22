@@ -1,0 +1,34 @@
+---
+argument_specs:
+  main:
+    short_description: Synchronize Azure App Configuration and Key Vault references to local JSON files.
+    options:
+      azure_runtime_synchronizer_config:
+        type: dict
+        required: true
+        description: Azure source, refresh behavior, output location, and value mappings.
+        options:
+          endpoint:
+            type: str
+            required: true
+            description: Azure App Configuration endpoint.
+          label:
+            type: str
+            required: true
+            description: App Configuration label used to select values.
+          sentinel_key:
+            type: str
+            required: true
+            description: App Configuration key that triggers a configuration refresh.
+          refresh_interval_seconds:
+            type: int
+            required: true
+            description: Minimum interval between refresh checks and Key Vault secret refreshes.
+          output_directory:
+            type: str
+            required: true
+            description: Directory containing versioned releases and the current symlink.
+          settings:
+            type: dict
+            required: true
+            description: Mapping of JSON output keys to App Configuration keys and secret flags.
